@@ -1,6 +1,10 @@
 const express = require("express");
 const router = express.Router();
 const fs = require("fs");
+const createError = require("http-errors");
+const httpStatus = require("http-status");
+const path = require("path");
+const crypto = require("crypto");
 
 /**
  * params: /
@@ -28,7 +32,7 @@ router.get("/", (req, res, next) => {
     filterKeys.forEach((key) => {
       if (!allowedFilter.includes(key)) {
         const exception = new Error(`Query ${key} is not allowed`);
-        exception.statusCode = 401;
+        exception.statusCode = httpStatus.BAD_REQUEST;
         throw exception;
       }
       if (!filterQuery[key]) delete filterQuery[key];
@@ -41,6 +45,7 @@ router.get("/", (req, res, next) => {
     let db = fs.readFileSync("db.json", "utf-8");
     db = JSON.parse(db);
     const { books } = db;
+    // console.log(books);
     //Filter data by title
     let result = [];
 
@@ -87,7 +92,7 @@ router.post("/", (req, res, next) => {
       exception.statusCode = 401;
       throw exception;
     }
-    //post processing
+
     const newBook = {
       author,
       country,
@@ -98,6 +103,7 @@ router.post("/", (req, res, next) => {
       year: parseInt(year) || 0,
       id: crypto.randomBytes(4).toString("hex"),
     };
+    console.log(newBook);
     //Read data from db.json then parse to JSobject
     let db = fs.readFileSync("db.json", "utf-8");
     db = JSON.parse(db);
@@ -105,12 +111,16 @@ router.post("/", (req, res, next) => {
 
     //Add new book to book JS object
     books.push(newBook);
+
     //Add new book to db JS object
     db.books = books;
+
     //db JSobject to JSON string
     db = JSON.stringify(db);
+
     //write and save to db.json
     fs.writeFileSync("db.json", db);
+
     //post send response
     res.status(200).send(newBook);
   } catch (error) {
